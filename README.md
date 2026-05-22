@@ -92,14 +92,14 @@ Create a dynamic Python function capable of retrieving sales data based on optio
 
 ##Python Code
 
-
-#import pandas as pd
+import pandas as pd
 from sqlalchemy import create_engine
 
 
 #Database connection
 engine = create_engine(
-    "engine = create_engine("mysql+pymysql://user:password@host/database")
+    "mysql+pymysql://looqbox-challenge:looq-challenge@35.199.115.174:3306/looqbox-challenge"
+)
 
 
 def retrieve_data(product_code=None, store_code=None, date=None):
@@ -137,27 +137,25 @@ my_data = retrieve_data(
 )
 
 print(my_data.head())
-```
 
-## Explanation
+
+##Explanation
 The function dynamically builds a SQL query according to the parameters provided by the user 
 and returns the result as a pandas dataframe.
 
-## Result
+##Result
 Screenshot saved in:
 images/case1_PY_output.png
 
 
 -----------------------------------------------------------------------------------------------------
 
-##Case 2
+#Case 2
 
+##Objective
+Use the two provided queries without modifying them, apply the requested date filter, and recreate the requested visualization using Python.
 
-## Objective
-Create a visualization using the provided queries while filtering the period between 2019-10-01 and 2019-12-31.44
-
-
-## Python Code
+##Python Code
 
 ```python
 # import pandas as pd
@@ -213,53 +211,70 @@ df_merged = pd.merge(
     how='inner'
 )
 
-# Groups total sales by business area
-sales_by_business = df_merged.groupby(
-    'BUSINESS_NAME'
-)['SALES_VALUE'].sum().sort_values(ascending=False)
-
-# Creates chart
-ax = sales_by_business.plot(
-    kind='bar',
-    figsize=(10, 6)
+# Calculates Ticket Average (TM)
+df_merged['TM'] = (
+    df_merged['SALES_VALUE'] /
+    df_merged['SALES_QTY']
 )
 
-# Chart labels
-plt.title('Total Sales by Business Area')
-plt.xlabel('Business Area')
-plt.ylabel('Total Sales Value')
+# Groups by store and business category
+tm_table = (
+    df_merged.groupby(
+        ['STORE_NAME', 'BUSINESS_NAME']
+    )['TM']
+    .mean()
+    .reset_index()
+)
 
-# Rotates labels
-plt.xticks(rotation=45)
+# Renames columns
+tm_table.columns = ['Store', 'Category', 'TM']
 
-# Adds values above bars
-for p in ax.patches:
-    ax.annotate(
-        f"{p.get_height():,.0f}",
-        (p.get_x() + p.get_width() / 2, p.get_height()),
-        ha='center',
-        va='bottom'
-    )
+# Rounds values
+tm_table['TM'] = tm_table['TM'].round(2)
 
-# Adjusts layout
-plt.tight_layout()
+# Displays result
+print(tm_table.head(20))
+
+# Saves table
+tm_table.to_csv(
+    'images/case2_table.csv',
+    index=False
+)
+# Creates table figure
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Removes axes
+ax.axis('off')
+
+# Creates table
+table = ax.table(
+    cellText=tm_table.values,
+    colLabels=tm_table.columns,
+    loc='center'
+)
+
+# Adjusts style
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1, 1.5)
 
 # Saves image
-plt.savefig('images/case2_chart.png')
+plt.savefig(
+    'images/case2_table.png',
+    bbox_inches='tight'
+)
 
-# Displays chart
+# Displays image
 plt.show()
 ```
 
-
 ##Explanation
-The solution reads the two provided queries into pandas dataframes, applies the requested date filter, 
-merges the tables using STORE_CODE, and creates a bar chart showing total sales by business area.
+The solution reads the two provided queries into pandas dataframes, applies the requested date filter between 2019-10-01 and 2019-12-31, merges the tables using STORE_CODE, and calculates the TM (Average Ticket) metric by dividing SALES_VALUE by SALES_QTY. The final table groups the results by store and business category.
 
 ##Result
-Screenshot saved in:
-images/case2_PY_result.png
-
+Result displayed in terminal and exported to:
+images/case2_table.csv
+images/case2_PY_table.png
 
 
 

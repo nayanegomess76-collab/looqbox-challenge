@@ -51,39 +51,58 @@ df_merged = pd.merge(
     how='inner'
 )
 
-# Groups total sales by business area
-sales_by_business = df_merged.groupby(
-    'BUSINESS_NAME'
-)['SALES_VALUE'].sum().sort_values(ascending=False)
-
-# Creates chart
-ax = sales_by_business.plot(
-    kind='bar',
-    figsize=(10, 6)
+# Calculates Ticket Average (TM)
+df_merged['TM'] = (
+    df_merged['SALES_VALUE'] /
+    df_merged['SALES_QTY']
 )
 
-# Chart labels
-plt.title('Total Sales by Business Area')
-plt.xlabel('Business Area')
-plt.ylabel('Total Sales Value')
+# Groups by store and business category
+tm_table = (
+    df_merged.groupby(
+        ['STORE_NAME', 'BUSINESS_NAME']
+    )['TM']
+    .mean()
+    .reset_index()
+)
 
-# Rotates labels
-plt.xticks(rotation=45)
+# Renames columns
+tm_table.columns = ['Store', 'Category', 'TM']
 
-# Adds values above bars
-for p in ax.patches:
-    ax.annotate(
-        f"{p.get_height():,.0f}",
-        (p.get_x() + p.get_width() / 2, p.get_height()),
-        ha='center',
-        va='bottom'
-    )
+# Rounds values
+tm_table['TM'] = tm_table['TM'].round(2)
 
-# Adjusts layout
-plt.tight_layout()
+# Displays result
+print(tm_table.head(20))
+
+# Saves table
+tm_table.to_csv(
+    'images/case2_table.csv',
+    index=False
+)
+# Creates table figure
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Removes axes
+ax.axis('off')
+
+# Creates table
+table = ax.table(
+    cellText=tm_table.values,
+    colLabels=tm_table.columns,
+    loc='center'
+)
+
+# Adjusts style
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1, 1.5)
 
 # Saves image
-plt.savefig('images/case2_chart.png')
+plt.savefig(
+    'images/case2_table.png',
+    bbox_inches='tight'
+)
 
-# Displays chart
+# Displays image
 plt.show()
